@@ -7,6 +7,10 @@
     "test": "ava"
   },
   "devDependencies": {
-    "ava": "^1.4.1"
+    "ava": "^1.4.1",
+    "lien": "^3.3.0"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3"
   }
 }
