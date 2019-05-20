@@ -4,14 +4,17 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "test": "ava --verbose"
+    "test": "ava --verbose",
+    "learn": "nodemon learn.js"
   },
   "devDependencies": {
     "ava": "^1.4.1",
-    "lien": "^3.3.0"
+    "lien": "^3.3.0",
+    "nodemon": "^1.19.0"
   },
   "dependencies": {
     "cheerio": "^1.0.0-rc.3",
+    "request": "^2.88.0",
     "sliced": "^1.0.1"
   }
 }
