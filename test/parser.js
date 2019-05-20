@@ -1,5 +1,5 @@
 import test from 'ava';
-import html from '../public/html';
+import fs from 'fs';
 
 import parser from '../lib/parser';
 // import lein from 'lien';
@@ -20,6 +20,8 @@ import parser from '../lib/parser';
 //     }
 //   });
 // });
+
+const html = fs.readFileSync(`${__dirname}/public/index.html`, { encoding: 'utf8' });
 
 test('Testing if ava is working', t => {
   t.pass();
@@ -47,7 +49,22 @@ test('When empty string for html', t => {
   const result = parser('', {
     title: '.title'
   });
+  t.deepEqual(result, { title: '' });
+});
 
-  console.log(result);
-  t.deepEqual(result, {});
+test('Scrape simple data', t => {
+  const result = parser(html, {
+    title: 'h1.title',
+    description: '.description',
+    date: {
+      selector: '.date',
+      convert: x => new Date(x)
+    }
+  });
+
+  t.deepEqual(result, {
+    title: 'Title',
+    description: 'Lorem ipsum',
+    date: new Date("1988-01-01")
+  });
 });
