@@ -155,10 +155,37 @@ test('closest example', t => {
     addresses: {
       listItem: 'table tbody tr',
       data: {
-        address: '.address'
+        address: '.address',
+        suburb: {
+          closest: 'table',
+          convert(html, $node) {
+            return $node.find("thead .city").text();
+          }
+        }
       }
     }
-  })
+  });
 
-  console.log(result);
-})
+  t.deepEqual(result, { addresses:
+    [ { address: 'one way street', suburb: 'Sydney' },
+      { address: 'GT Road', suburb: 'Sydney' } ]
+  });
+});
+
+// test('text nodes', t => {
+//   const result = parser(html, {
+//     line0: {
+//       selector: '.textnodes',
+//       texteq: 0
+//     },
+//     line1: {
+//       selector: '.textnodes',
+//       texteq: 1
+//     }
+//   });
+
+//   t.deepEqual(result, {
+//     line0: 'Line0',
+//     line1: 'Line1'
+//   });
+// });
