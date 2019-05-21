@@ -26,6 +26,7 @@ function testHtml() {
   const $ = cheerio.load(html);
 
   console.log($('#fruits > li').text());
+  console.log($('.orange').closest('.apple').text());
 }
 
 testHtml();
