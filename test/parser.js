@@ -56,6 +56,7 @@ test('Scrape simple data', t => {
   const result = parser(html, {
     title: 'h1.title',
     description: '.description',
+    value: '.value',
     date: {
       selector: '.date',
       convert: x => new Date(x)
@@ -65,6 +66,99 @@ test('Scrape simple data', t => {
   t.deepEqual(result, {
     title: 'Title',
     description: 'Lorem ipsum',
-    date: new Date("1988-01-01")
+    date: new Date("1988-01-01"),
+    value: '1'
   });
 });
+
+test('scrape lists', t => {
+  const result = parser(html, {
+    features: {
+      listItem: ".features > li"
+    }
+  });
+
+  t.deepEqual(result, {
+    features: [
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6'
+    ]
+  })
+});
+
+test('scrape lists & convert lists', t => {
+  const result = parser(html, {
+    features: {
+      listItem: ".features > li",
+      convert: x => parseInt(x, 10)
+    }
+  });
+
+  t.deepEqual(result, {
+    features: [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
+  });
+});
+
+test('nested objects', t => {
+  const result = parser(html, {
+    nested: {
+      selector: '.nested',
+      data: {
+        foo: {
+          data: {
+            level1: {
+              selector: ".level1",
+              data: {
+                level2: {
+                  selector: 'span',
+                  eq: 1
+                }
+              }
+            },
+            level1Text: {
+              selector: 'span',
+              eq: 1
+            },
+            level2Text: '.level2'
+          }
+        }
+      }
+    }
+  });
+
+  t.deepEqual(result, {
+    nested: {
+      foo: {
+        level1: {
+          level2: '2'
+        },
+        level1Text: '1',
+        level2Text: '2'
+      }
+    }
+  })
+});
+
+test('closest example', t => {
+  const result = parser(html, {
+    addresses: {
+      listItem: 'table tbody tr',
+      data: {
+        address: '.address'
+      }
+    }
+  })
+
+  console.log(result);
+})
