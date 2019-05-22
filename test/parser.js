@@ -172,20 +172,33 @@ test('closest example', t => {
   });
 });
 
-// test('text nodes', t => {
-//   const result = parser(html, {
-//     line0: {
-//       selector: '.textnodes',
-//       texteq: 0
-//     },
-//     line1: {
-//       selector: '.textnodes',
-//       texteq: 1
-//     }
-//   });
+test('text nodes', t => {
+  const result = parser(html, {
+    line0: {
+      selector: '.textnodes',
+      texteq: 0
+    },
+    line1: {
+      selector: '.textnodes',
+      texteq: 1
+    }
+  });
 
-//   t.deepEqual(result, {
-//     line0: 'Line0',
-//     line1: 'Line1'
-//   });
-// });
+  t.deepEqual(result, {
+    line0: 'Line0',
+    line1: 'Line1'
+  });
+});
+
+test('only direct text nodes, when empty return ""', t => {
+  const result = parser(html, {
+    deep_line: {
+      selector: '.deep-textnodes',
+      texteq: 2
+    }
+  });
+
+  t.deepEqual(result, {
+    deep_line: ''
+  });
+});
