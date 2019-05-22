@@ -69,10 +69,15 @@ console.log('\nProduct Seller Name = '+$('#merchant-info').text().replace(/\s\s+
 
 function amazonScrapingWithParser() {
   const result = parser(html, {
-    productTitle: '#productTitle'
+    productTitle: '#productTitle',
+    size: '#variation_size_name .selection',
+    ratings: '#acrCustomerReviewText',
+    mrp: '#price .priceBlockStrikePriceString',
+    buyBox: '#sellerProfileTriggerId',
+    variants: {
+      listItem: '#variation_size_name .a-size-base'
+    }
   });
-
-  console.log(result);
 }
 
 amazonScrapingWithParser();
