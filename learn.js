@@ -1,7 +1,7 @@
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
-
+const parser = require('./lib/parser');
 const html = fs.readFileSync('./amazonIndex.html', { encoding: 'utf8' });
 
 /* const html = `
@@ -32,7 +32,7 @@ function testHtml() {
   console.log($('.orange').closest('.apple').text());
 }
 
-function amazonScraping(){
+function amazonScrapingWithCheerio(){
   const $ = cheerio.load(html);
 
 /* console.log($('#fruits > li').text());
@@ -64,5 +64,15 @@ $('#histogramTable').each((i,el) =>{
 })
 console.log('\nProduct Seller Name = '+$('#merchant-info').text().replace(/\s\s+/g,''));
 }
-amazonScraping();
+// amazonScrapingWithCheerio();
 //testHtml();
+
+function amazonScrapingWithParser() {
+  const result = parser(html, {
+    productTitle: '#productTitle'
+  });
+
+  console.log(result);
+}
+
+amazonScrapingWithParser();
