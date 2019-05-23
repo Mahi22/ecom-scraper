@@ -2,7 +2,7 @@ const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const parser = require('./lib/parser');
-const html = fs.readFileSync('./amazonIndex.html', { encoding: 'utf8' });
+// const html = fs.readFileSync('./amazonIndex.html', { encoding: 'utf8' });
 
 /* const html = `
 <div id="root">
@@ -67,7 +67,7 @@ console.log('\nProduct Seller Name = '+$('#merchant-info').text().replace(/\s\s+
 // amazonScrapingWithCheerio();
 //testHtml();
 
-function amazonScrapingWithParser() {
+function amazonScrapingWithParser(html) {
   const result = parser(html, {
     productTitle: '#productTitle',
     size: '#variation_size_name .selection',
@@ -135,4 +135,34 @@ function amazonScrapingWithParser() {
   console.log(result);
 }
 
-amazonScrapingWithParser();
+// amazonScrapingWithParser(html);
+
+function fetchAmazonAsin(asin) {
+  request(`https://www.amazon.in/dp/${asin}`, function request(error, response, html) {
+    if (!error && response.statusCode === 200) {
+      amazonScrapingWithParser(html);
+    }
+  })
+}
+
+function mapAsins(asins) {
+  asins.forEach(fetchAmazonAsin);
+}
+
+var asins = [
+  'B00I0RQM0W',
+  'B00I3A25CA',
+  'B00I3EX8RW',
+  'B00I0RSY3K',
+  'B00I3EV0YA',
+  'B00LVKUNJG',
+  'B00I2NK69C',
+  'B00I2NKJTE',
+  'B00I3A2BVA',
+  'B00I2MOGTY',
+  'B00I2NL45C',
+  'B00I3EV45U',
+  'B00I3X8FPI'
+];
+
+mapAsins(asins);
