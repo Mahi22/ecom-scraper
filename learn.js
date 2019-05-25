@@ -1,8 +1,9 @@
+"use strict";
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const parser = require('./lib/parser');
-// const html = fs.readFileSync('./amazonIndex.html', { encoding: 'utf8' });
+const html = fs.readFileSync('./flipkartIndex.html', { encoding: 'utf8' });
 
 /* const html = `
 <div id="root">
@@ -25,12 +26,12 @@ const parser = require('./lib/parser');
 </div>
 `; */
 
-function testHtml() {
+/* function testHtml() {
   const $ = cheerio.load(html);
 
   console.log($('#fruits > li').text());
   console.log($('.orange').closest('.apple').text());
-}
+} */
 
 function amazonScrapingWithCheerio(){
   const $ = cheerio.load(html);
@@ -181,14 +182,56 @@ var asins = [
 
 // mapAsins(asins);
 
-function fetchFlipkartHTML() {
-  request(`https://www.flipkart.com/johnson-s-baby-no-more-tears-shampoo-500-ml/p/itmf6syg5ftwkhv2`, function(error, response, html) {
-    if (!error && response.statusCode === 200) {
-      console.log(html);
-    } else {
-      console.log(response.statusCode);
-    }
+function flipkartScrapingWithParser(html){
+  const result = parser(html, {
+    productTitle: '._35KyD6',
+    productPriceDetails: {
+      listItem: '._2i1QSc ._1uv9Cb > div ',
+      data:{
+        productPrice: {
+            texteq: 0
+        },
+        productMrp: {
+            texteq: 1
+        }
+      }
+    },
+    sellerName: '#sellerName',
+    reviewsAndRatings: {
+      listItem: '._38sUEc > span',
+      data:{
+        ratings:{
+          selector: 'span',
+          texteq:0
+        },
+        reviews: {
+          selector: 'span',
+          texteq: 2
+        }
+      }
+    },
+    detailsReviewsAndRatings: {
+      listItem: '._1n1j36 < div < div'
+    },
+    productDescription: '._3cpW1u > div',
+    productSpecifications: {
+      listItem: '._2RngUh table tbody tr',
+      data: {
+        label: {
+          selector: 'td',
+          eq: 0
+        },
+        value: {
+          selector: 'td',
+          eq: 1
+        }
+      }
+    },
+  mostSearchedProducts: {
+    listItem: '._1XtOOW > div'
+  }
   });
+  console.log(result);
 }
 
-fetchFlipkartHTML();
+flipkartScrapingWithParser(html);
