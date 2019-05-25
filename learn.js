@@ -210,9 +210,7 @@ function flipkartScrapingWithParser(html){
         }
       }
     },
-    detailsReviewsAndRatings: {
-      listItem: '._1n1j36 < div < div'
-    },
+    detailsReviewsAndRatings: '._1n1j36',
     productDescription: '._3cpW1u > div',
     productSpecifications: {
       listItem: '._2RngUh table tbody tr',
