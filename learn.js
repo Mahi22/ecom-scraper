@@ -73,14 +73,21 @@ function amazonScrapingWithParser(html) {
     size: '#variation_size_name .selection',
     reviews: '#acrCustomerReviewText',
     mrp: '#price .priceBlockStrikePriceString',
+    productPrice: '#priceblock_ourprice',
     buyBox: '#sellerProfileTriggerId',
     features: {
       selector: '#feature-bullets .a-unordered-list',
-      replace: /\s\s+/g
+      replace:{
+      regex: /\s\s+/g,
+      replacement: ' '
+      }
     },
     productDescription: {
       selector: '#productDescription',
-      replace: /\s\s+/g
+      replace: {
+       regex: /\s\s+/g,
+       replacement: ' '
+      }
     },
     variants: {
       listItem: '#variation_size_name .a-size-base'
@@ -96,6 +103,13 @@ function amazonScrapingWithParser(html) {
             replacement: ' '
           }
         }
+      }
+    },
+    productDetails:{
+      selector: '#detail_bullets_id table tbody tr',
+      replace:{
+        regex:/\s\s+/g,
+        replacement:' '
       }
     },
     ratings: {
