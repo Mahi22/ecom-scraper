@@ -179,4 +179,16 @@ var asins = [
   'B00I3X8FPI'
 ];
 
-mapAsins(asins);
+// mapAsins(asins);
+
+function fetchFlipkartHTML() {
+  request(`https://www.flipkart.com/johnson-s-baby-no-more-tears-shampoo-500-ml/p/itmf6syg5ftwkhv2`, function(error, response, html) {
+    if (!error && response.statusCode === 200) {
+      console.log(html);
+    } else {
+      console.log(response.statusCode);
+    }
+  });
+}
+
+fetchFlipkartHTML();
