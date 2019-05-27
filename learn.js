@@ -177,7 +177,8 @@ var asins = [
   'B00I2MOGTY',
   'B00I2NL45C',
   'B00I3EV45U',
-  'B00I3X8FPI'
+  'B00I3X8FPI',
+  'B07PBQSMQW'
 ];
 
 // mapAsins(asins);
@@ -186,12 +187,14 @@ function flipkartScrapingWithParser(html){
   const result = parser(html, {
     productTitle: '._35KyD6',
     productPriceDetails: {
-      listItem: '._2i1QSc ._1uv9Cb > div ',
-      data:{
+      listItem: '._2i1QSc < div',
+        data:{
         productPrice: {
+            selector: 'div',
             texteq: 0
         },
         productMrp: {
+            selector: 'div',
             texteq: 1
         }
       }
