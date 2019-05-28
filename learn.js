@@ -238,4 +238,4 @@ function flipkartScrapingWithParser(html){
   console.log(result);
 }
 
-flipkartScrapingWithParser(html);
+// flipkartScrapingWithParser(html);
