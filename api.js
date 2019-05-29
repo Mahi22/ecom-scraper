@@ -431,7 +431,14 @@ const tap = Operators.tap;
       return null;
     }
 
-    const allTransactions$ = ({ props: { response, header, url } }) => new Promise((resolve, reject) => {
+    const nextPayementTokenUrl = ({ response, previousPayment, sellerId, startDate, endDate }) => {
+      if (response.show_more) {
+        return `${previousPayment}&token=${response.token}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`
+      }
+      return null;
+    }
+
+    const allTransactions$ = ({ props: { header, url } }) => new Promise((resolve, reject) => {
       const get$ = (rqstUrl) => curlRequest$(header, rqstUrl).pipe(
         map(res => ({
           transactions: res.result.transactions,
@@ -442,12 +449,36 @@ const tap = Operators.tap;
       const allRqst$ = get$(url).pipe(
         expand(({ next }) => next ? get$(next).pipe(delay(1000)) : ObservableEmpty()),
         concatMap(({ transactions }) => transactions),
-        // tap(console.log),
+        catchError(console.log),
+        tap(console.log),
         // toArray()
       );
 
       resolve({ allRqst$ });
     });
+
+    // const previousPaymentUrl = ({ header, previousPayment, sellerId, startDate, endDate, token }) => token ?
+    //   `${previousPayment}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}` :
+    //   `${previousPayment}&token=${token}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`
+
+    const previousPayment$ = ({ props: { header, previousPayment, sellerId, startDate, endDate }}) => {
+      const get$ = (rqstUrl) => curlRequest$(header, rqstUrl).pipe(
+        map(response => ({
+          data: response.data,
+          next: nextPayementTokenUrl({ response, previousPayment, sellerId, startDate, endDate })
+        }))
+      );
+
+      const payementAllRqst$ = get$(`${previousPayment}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`).pipe(
+        expand(({ next }) => next ? get$(next).pipe(delay(1000)) : ObservableEmpty()),
+        concatMap(({ data }) => data),
+        catchError(console.log),
+      );
+
+        payementAllRqst$.subscribe(console.log);
+
+      // get$(`${previousPayment}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`).subscribe(console.log);
+    }
 
     const aggregatedAmountRequest$ = ({ props: { header, url }}) => ({ aggregatedAmountRequest$: curlRequest$(header, url) });
 
@@ -456,7 +487,7 @@ const tap = Operators.tap;
         case 'listing_id':
           return `${url}?param=${transaction[param]}&service_type=${service_type}&state_code=${transaction.state_code}&sellerId=${sellerId}`;
         default:
-            return `${url}?param=${transaction[param]}&service_type=${service_type}&sellerId=${sellerId}`;
+          return `${url}?param=${transaction[param]}&service_type=${service_type}&sellerId=${sellerId}`;
       }
     }
 
@@ -470,7 +501,8 @@ const tap = Operators.tap;
           basic: Promise.resolve(transaction)
         })),
         // tap(console.log),
-        toArray()
+        toArray(),
+        catchError(console.log)
       );
       // Converting Results toArray
       // rqst$.pipe(toArray()).subscribe(transactions => {
@@ -645,8 +677,13 @@ const tap = Operators.tap;
         return { tcsTransaction$ };
       }
     ]);
+
+    const fetchPreviousPayments = sequence('Fetching Previous payements', [
+      previousPayment$
+    ])
     
     ft.run([
+      fetchPreviousPayments,
       parallel([
         orderTransactions,
         storageRecallTransactions,
@@ -665,7 +702,7 @@ const tap = Operators.tap;
           tcs: tcsTransaction$
         });
 
-        allTransaction$.pipe(catchError(console.log)).subscribe(console.log);
+        // allTransaction$.pipe(catchError(console.log)).subscribe(console.log);
       }
     ], {
       header: [
@@ -682,12 +719,13 @@ const tap = Operators.tap;
         'Referer: https://seller.flipkart.com/sw.js',
         'fk-csrf-token: C6ed4qGh-iRJXE-besPQs8yMeJIPWD_Zrs8w'
       ],
+      previousPayment: 'https://seller.flipkart.com/napi/payments/fetchPreviousPayments?offset=8&filter=filter&type=MONTHLY_VIEW',
       getAllTransactionAggregatedAmount: 'https://seller.flipkart.com/napi/payments/getAllTransactionAggregatedAmount',
       getAllTransactions: 'https://seller.flipkart.com/napi/payments/getAllTransactions',
       details: 'https://seller.flipkart.com/napi/payments/details',
       history: 'https://seller.flipkart.com/napi/payments/history',
-      startDate: '2019-04-01',
-      endDate: '2019-04-02',
+      startDate: '2019-05-01',
+      endDate: '2019-05-30',
       sellerId: '9ujbcnp6ky5ruzie'
     });
 
