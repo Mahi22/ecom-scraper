@@ -16,5 +16,19 @@
     "cheerio": "^1.0.0-rc.3",
     "request": "^2.88.0",
     "sliced": "^1.0.1"
-  }
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mahi22/ecom-scraper.git"
+  },
+  "author": "Prashant Madkar",
+  "bugs": {
+    "url": "https://github.com/Mahi22/ecom-scraper/issues"
+  },
+  "homepage": "https://github.com/Mahi22/ecom-scraper#readme",
+  "description": ""
 }

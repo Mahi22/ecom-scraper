@@ -181,7 +181,7 @@ var asins = [
   'B07PBQSMQW'
 ];
 
-// mapAsins(asins);
+mapAsins(asins);
 
 function flipkartScrapingWithParser(html){
   const result = parser(html, {
@@ -241,4 +241,4 @@ function flipkartScrapingWithParser(html){
   console.log(result);
 }
 
-flipkartScrapingWithParser(html);
+//flipkartScrapingWithParser(html);
