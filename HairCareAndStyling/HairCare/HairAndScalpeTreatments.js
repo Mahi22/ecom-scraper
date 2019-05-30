@@ -3,13 +3,11 @@ const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const parser = require('./lib/parser');
-const html = fs.readFileSync('./bestSellersIndex.html', { encoding: 'utf8' });
-const $ = cheerio.load(html);
-var href = $(this).attr('href');
+const html = fs.readFileSync('./HairCareAndStyling/HairCare/HairAndScalpeTreatments.html', { encoding: 'utf8' });
+
 function amazonBestSellersScraping(html) {
     const result = parser(html, {
     bestSellersProductInfo:{
-      productLink,
       listItem: '.a-list-item',
       data:{
         productTitle:{
@@ -33,12 +31,8 @@ function amazonBestSellersScraping(html) {
       }
     }
     });
+
     console.log(result);
   }
-
-  var productLink = $('a.a-link-normal').each(function(){
-    console.log(( this.href )) // alerts http://currentdomain.com/www.google.com
-    console.log(( $(this).attr('href') )) // alerts www.google.com
-})
 
   amazonBestSellersScraping(html);

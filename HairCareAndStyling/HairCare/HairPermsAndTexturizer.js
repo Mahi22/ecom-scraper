@@ -3,7 +3,7 @@ const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const parser = require('./lib/parser');
-const html = fs.readFileSync('./bath&showerIndex.html', { encoding: 'utf8' });
+const html = fs.readFileSync('./HairCareAndStyling/HairCare/HairPermsAndTexturizer.html', { encoding: 'utf8' });
 
 function amazonBestSellersScraping(html) {
     const result = parser(html, {

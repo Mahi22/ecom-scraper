@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "test": "ava --verbose",
-    "amazonBath&Shower": "nodemon amazonBath&shower.js"
+    "amazonBestSellers": "nodemon amazonBestSellers.js"
   },
   "devDependencies": {
     "ava": "^1.4.1",
