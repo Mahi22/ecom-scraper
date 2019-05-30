@@ -25,6 +25,8 @@ const delay = Operators.delay;
 const mergeMap = Operators.mergeMap;
 const catchError = Operators.catchError;
 const tap = Operators.tap;
+const retryWhen = Operators.retryWhen;
+const take = Operators.take;
 
 // const header = {
 //   "credentials":"include",
@@ -405,12 +407,16 @@ const tap = Operators.tap;
         .setHeaders(header)
         .get(url)
         .then(({ statusCode, body, headers }) => {
+          // console.log(statusCode);
+          // console.log(url);
+          // console.log(JSON.parse(body));
           if (statusCode === 200) {
             res(JSON.parse(body));
           }
         })
         .catch(e => {
-          console.log(e)
+          console.log('Caught Error');
+          rej(e);
         });
     }));
 
@@ -427,13 +433,6 @@ const tap = Operators.tap;
         var arr = url.split('?');
         arr.splice(1, 0, `?token=${response.result.token}&`);
         return arr.join('');
-      }
-      return null;
-    }
-
-    const nextPayementTokenUrl = ({ response, previousPayment, sellerId, startDate, endDate }) => {
-      if (response.show_more) {
-        return `${previousPayment}&token=${response.token}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`
       }
       return null;
     }
@@ -460,25 +459,6 @@ const tap = Operators.tap;
     // const previousPaymentUrl = ({ header, previousPayment, sellerId, startDate, endDate, token }) => token ?
     //   `${previousPayment}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}` :
     //   `${previousPayment}&token=${token}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`
-
-    const previousPayment$ = ({ props: { header, previousPayment, sellerId, startDate, endDate }}) => {
-      const get$ = (rqstUrl) => curlRequest$(header, rqstUrl).pipe(
-        map(response => ({
-          data: response.data,
-          next: nextPayementTokenUrl({ response, previousPayment, sellerId, startDate, endDate })
-        }))
-      );
-
-      const payementAllRqst$ = get$(`${previousPayment}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`).pipe(
-        expand(({ next }) => next ? get$(next).pipe(delay(1000)) : ObservableEmpty()),
-        concatMap(({ data }) => data),
-        catchError(console.log),
-      );
-
-        payementAllRqst$.subscribe(console.log);
-
-      // get$(`${previousPayment}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`).subscribe(console.log);
-    }
 
     const aggregatedAmountRequest$ = ({ props: { header, url }}) => ({ aggregatedAmountRequest$: curlRequest$(header, url) });
 
@@ -677,58 +657,198 @@ const tap = Operators.tap;
         return { tcsTransaction$ };
       }
     ]);
-
-    const fetchPreviousPayments = sequence('Fetching Previous payements', [
-      previousPayment$
-    ])
     
-    ft.run([
-      fetchPreviousPayments,
-      parallel([
-        orderTransactions,
-        storageRecallTransactions,
-        spfTransactions,
-        tdsTransactions,
-        adsTransactions,
-        tcsTransactions
-      ]),
-      ({ props: { orderTransaction$, storageTransaction$, spfTransaction$, tdsTransaction$, adsTransaction$, tcsTransaction$ }}) => {
-        const allTransaction$ = ObservableForkJoin({
-          order: orderTransaction$,
-          storage: storageTransaction$,
-          spf: spfTransaction$,
-          tds: tdsTransaction$,
-          ads: adsTransaction$,
-          tcs: tcsTransaction$
-        });
+    /** All Transactions*/
+    // ft.run([
+    //   parallel([
+    //     orderTransactions,
+    //     storageRecallTransactions,
+    //     spfTransactions,
+    //     tdsTransactions,
+    //     adsTransactions,
+    //     tcsTransactions
+    //   ]),
+    //   ({ props: { orderTransaction$, storageTransaction$, spfTransaction$, tdsTransaction$, adsTransaction$, tcsTransaction$ }}) => {
+    //     const allTransaction$ = ObservableForkJoin({
+    //       order: orderTransaction$,
+    //       storage: storageTransaction$,
+    //       spf: spfTransaction$,
+    //       tds: tdsTransaction$,
+    //       ads: adsTransaction$,
+    //       tcs: tcsTransaction$
+    //     });
 
-        // allTransaction$.pipe(catchError(console.log)).subscribe(console.log);
-      }
-    ], {
-      header: [
-        'Pragma: no-cache',
-        'DNT: 1',
-        // 'Accept-Encoding: gzip, deflate, br',
-        'Accept-Language: en-US,en;q=0.9,mr;q=0.8',
-        'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
-        'Accept: application/json, text/javascript, */*; q=0.01',
-        'Cache-Control: no-cache',
-        'X-Requested-With: XMLHttpRequest',
-        'Cookie: s_ch_list=%5B%5B%27Internal%2520Originated%27%2C%271488954573683%27%5D%5D; _mkto_trk=id:021-QVV-957&token:_mch-flipkart.com-1495949869629-70928; _ga=GA1.2.2038854975.1495909297; T=TI148890318637053625093466435150917475437830390952355761756530507217; AMCVS_17EB401053DAF4840A490D4C%40AdobeOrg=1; s_cc=true; AMCV_17EB401053DAF4840A490D4C%40AdobeOrg=-227196251%7CMCIDTS%7C18043%7CMCMID%7C37080542162887526766253199795737714834%7CMCAAMLH-1558939319%7C12%7CMCAAMB-1559474573%7Cj8Odv6LonN4r3an7LhD3WZrU1bUpAkFkkiY1ncBR96t2PTI%7CMCOPTOUT-1558876973s%7CNONE%7CMCAID%7CNONE; AMCVS_55CFEDA0570C3FA17F000101%40AdobeOrg=1; __utmc=143439159; __utmz=143439159.1558869795.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); sellerId=9ujbcnp6ky5ruzie; _gid=GA1.2.1161172798.1558869828; S=d1t18P05bVT8/P1pWPyt+P0w/P6RrOOhZXNDmV3flEXDD3/SjTalTyX85T1/ghUp6FjxKZv/ifWwx7x7quWmQ8ZOGZw==; SN=2.VI2D21A0104CF94D9AB0835AE69883E6BF.SI2A846B995A7945F890ADBD569E1EB237.VSB1DCBB3CBCEC47ACB48C0E20B047CBDE.1558871023; connect.sid=s%3A5kgIVzcwOA7hnf_YvG3SrfbIP3mQHHB-.ZLfMJnJyG6%2FuJsd4FypwFrh2gHLTQuLqxFgrDml8Nyg; __utma=143439159.2038854975.1495909297.1558869795.1558871079.2; is_login=true; AMCV_55CFEDA0570C3FA17F000101%40AdobeOrg=-227196251%7CMCIDTS%7C18043%7CMCMID%7C11305740583582521872941987069957610473%7CMCOPTOUT-1558941981s%7CNONE%7CMCAID%7CNONE; _gat=1; s_ppvl=seller%253A%2520home%2520page%2C100%2C100%2C1000%2C847%2C998%2C1920%2C1080%2C0.8%2CL; s_ppv=seller%253A%2520payments%2520%257C%2520transactions%2C100%2C100%2C998%2C1043%2C998%2C1920%2C1080%2C0.8%2CP; s_nr=1558935916729-Repeat; s_ppn=no%20value; s_sq=flipkart-prd%3D%2526pid%253DHomePage%2526pidt%253D1%2526oid%253Dfunction%252528%252529%25257B%25257D%2526oidt%253D2%2526ot%253DDIV',
-        'Connection: keep-alive',
-        'Referer: https://seller.flipkart.com/sw.js',
-        'fk-csrf-token: C6ed4qGh-iRJXE-besPQs8yMeJIPWD_Zrs8w'
-      ],
-      previousPayment: 'https://seller.flipkart.com/napi/payments/fetchPreviousPayments?offset=8&filter=filter&type=MONTHLY_VIEW',
-      getAllTransactionAggregatedAmount: 'https://seller.flipkart.com/napi/payments/getAllTransactionAggregatedAmount',
-      getAllTransactions: 'https://seller.flipkart.com/napi/payments/getAllTransactions',
-      details: 'https://seller.flipkart.com/napi/payments/details',
-      history: 'https://seller.flipkart.com/napi/payments/history',
-      startDate: '2019-05-01',
-      endDate: '2019-05-30',
-      sellerId: '9ujbcnp6ky5ruzie'
-    });
+    //     // allTransaction$.pipe(catchError(console.log)).subscribe(console.log);
+    //   }
+    // ], {
+    //   header: [
+    //     'Pragma: no-cache',
+    //     'DNT: 1',
+    //     // 'Accept-Encoding: gzip, deflate, br',
+    //     'Accept-Language: en-US,en;q=0.9,mr;q=0.8',
+    //     'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
+    //     'Accept: application/json, text/javascript, */*; q=0.01',
+    //     'Cache-Control: no-cache',
+    //     'X-Requested-With: XMLHttpRequest',
+    //     'Cookie: s_ch_list=%5B%5B%27Internal%2520Originated%27%2C%271488954573683%27%5D%5D; _mkto_trk=id:021-QVV-957&token:_mch-flipkart.com-1495949869629-70928; _ga=GA1.2.2038854975.1495909297; T=TI148890318637053625093466435150917475437830390952355761756530507217; AMCVS_17EB401053DAF4840A490D4C%40AdobeOrg=1; s_cc=true; AMCV_17EB401053DAF4840A490D4C%40AdobeOrg=-227196251%7CMCIDTS%7C18043%7CMCMID%7C37080542162887526766253199795737714834%7CMCAAMLH-1558939319%7C12%7CMCAAMB-1559474573%7Cj8Odv6LonN4r3an7LhD3WZrU1bUpAkFkkiY1ncBR96t2PTI%7CMCOPTOUT-1558876973s%7CNONE%7CMCAID%7CNONE; AMCVS_55CFEDA0570C3FA17F000101%40AdobeOrg=1; __utmc=143439159; __utmz=143439159.1558869795.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); sellerId=9ujbcnp6ky5ruzie; _gid=GA1.2.1161172798.1558869828; S=d1t18P05bVT8/P1pWPyt+P0w/P6RrOOhZXNDmV3flEXDD3/SjTalTyX85T1/ghUp6FjxKZv/ifWwx7x7quWmQ8ZOGZw==; SN=2.VI2D21A0104CF94D9AB0835AE69883E6BF.SI2A846B995A7945F890ADBD569E1EB237.VSB1DCBB3CBCEC47ACB48C0E20B047CBDE.1558871023; connect.sid=s%3A5kgIVzcwOA7hnf_YvG3SrfbIP3mQHHB-.ZLfMJnJyG6%2FuJsd4FypwFrh2gHLTQuLqxFgrDml8Nyg; __utma=143439159.2038854975.1495909297.1558869795.1558871079.2; is_login=true; AMCV_55CFEDA0570C3FA17F000101%40AdobeOrg=-227196251%7CMCIDTS%7C18043%7CMCMID%7C11305740583582521872941987069957610473%7CMCOPTOUT-1558941981s%7CNONE%7CMCAID%7CNONE; _gat=1; s_ppvl=seller%253A%2520home%2520page%2C100%2C100%2C1000%2C847%2C998%2C1920%2C1080%2C0.8%2CL; s_ppv=seller%253A%2520payments%2520%257C%2520transactions%2C100%2C100%2C998%2C1043%2C998%2C1920%2C1080%2C0.8%2CP; s_nr=1558935916729-Repeat; s_ppn=no%20value; s_sq=flipkart-prd%3D%2526pid%253DHomePage%2526pidt%253D1%2526oid%253Dfunction%252528%252529%25257B%25257D%2526oidt%253D2%2526ot%253DDIV',
+    //     'Connection: keep-alive',
+    //     'Referer: https://seller.flipkart.com/sw.js',
+    //     'fk-csrf-token: C6ed4qGh-iRJXE-besPQs8yMeJIPWD_Zrs8w'
+    //   ],
+    //   previousPayment: 'https://seller.flipkart.com/napi/payments/fetchPreviousPayments?offset=8&filter=filter&type=MONTHLY_VIEW',
+    //   getAllTransactionAggregatedAmount: 'https://seller.flipkart.com/napi/payments/getAllTransactionAggregatedAmount',
+    //   getAllTransactions: 'https://seller.flipkart.com/napi/payments/getAllTransactions',
+    //   details: 'https://seller.flipkart.com/napi/payments/details',
+    //   history: 'https://seller.flipkart.com/napi/payments/history',
+    //   startDate: '2019-05-01',
+    //   endDate: '2019-05-30',
+    //   sellerId: '9ujbcnp6ky5ruzie'
+    // });
 
     // devtools.remove(ft);
 
-    
+/** NEFT BASED TRANSACTIONS */
+
+const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => {
+
+  const previousPaymentURL = 'https://seller.flipkart.com/napi/payments/fetchPreviousPayments?offset=8&filter=filter&type=MONTHLY_VIEW';
+  const transactionAggregatedAmount = 'https://seller.flipkart.com/napi/payments/getTransactionAggregatedAmount';
+  const transactionHistoryURL = 'https://seller.flipkart.com/napi/payments/getHistory?offset=8';
+
+  const paymentAggregatedAmountUrl = ({ payment, type, sellerId }) =>
+  `${transactionAggregatedAmount}?transactionType=${payment.settlement_type.toLowerCase()}&adviceId=${payment.advice_id}&pageType=otherTransaction&type=${type}&sellerId=${sellerId}`
+
+  const nextPayementTokenUrl = ({ response, url, sellerId, startDate, endDate }) => {
+    if (response.show_more) {
+      return `${url}&token=${response.token}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`
+    }
+    return null;
+  }
+  const getPayment$ = (rqstHeader, rqstUrl) => curlRequest$(rqstHeader, rqstUrl).pipe(
+    map(response => ({
+      data: response.data,
+      next: nextPayementTokenUrl({ response, url: previousPaymentURL, sellerId, startDate, endDate })
+    }))
+  );
+
+  const paymentRqst$ = getPayment$(header, `${previousPaymentURL}&startDate=${startDate}&endDate=${endDate}&sellerId=${sellerId}`).pipe(
+    expand(({ next }) => next ? getPayment$(header, next).pipe(delay(1000)) : ObservableEmpty()),
+    concatMap(({ data }) => data),
+    catchError(console.log),
+  );
+
+  const nextPayementHistoryTokenUrl = ({ response, url, sellerId, payment, type }) => {
+    if (response.result.is_next) {
+      return `${url}&token=${response.result.token}&pageNo=${response.result.token}&transactionType=${payment.settlement_type.toLowerCase()}&adviceId=${payment.advice_id}&type=${type}&sellerId=${sellerId}`
+    }
+    return null;
+  }
+
+  const getPaymentHistory$ = (rqstHeader, rqstUrl, payment, type) => curlRequest$(rqstHeader, rqstUrl).pipe(
+    // tap(res => {
+    //   console.log(rqstUrl);
+    //   console.log(res);
+    // }),
+    map(response => {
+      if (response.result) {
+        return ({
+          transactions: response.result.transactions,
+          next: nextPayementHistoryTokenUrl({ response, url: transactionHistoryURL, sellerId, payment, type })
+        });
+      } else {
+        throw new Error('Error!');
+      }
+    }),
+    retryWhen(err => err.pipe(delay(1000), take(3)))
+  );
+
+  const paymentHistoryRqst$ = (payment, type) => getPaymentHistory$(header, `${transactionHistoryURL}&transactionType=${payment.settlement_type.toLowerCase()}&adviceId=${payment.advice_id}&type=${type}&sellerId=${sellerId}`, payment, type).pipe(
+    expand(({ next }) => next ? getPaymentHistory$(header, next, payment, type).pipe(delay(1000)) : ObservableEmpty()),
+    concatMap(({ transactions }) => transactions),
+    toArray(),
+    // tap(console.log),
+    catchError(console.log),
+  );
+  
+  const transactionRqst$ = paymentRqst$.pipe(
+    mergeMap(payment => ObservableForkJoin({
+      payment: Promise.resolve(payment),
+      order: ObservableForkJoin({
+        aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'order_item_transactions' })),
+        transactions:paymentHistoryRqst$(payment, 'order_item_transactions')
+      }),
+      storage: ObservableForkJoin({
+        aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'storage_recall_transactions' })),
+      }),
+      spf: ObservableForkJoin({
+        aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'spf_transactions' })),
+      }),
+      tds: ObservableForkJoin({
+        aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tds_transactions' })),
+      }),
+      ads: ObservableForkJoin({
+        aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'ads_transactions' })),
+      }),
+      tcs: ObservableForkJoin({
+        aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tcs_transactions' })),
+      })
+    }))
+  );
+
+  // const getPaymentHistory$ = (rqstHeader, rqstUrl) => curlRequest$(rqstHeader, rqstUrl).pipe(
+  //   map(response => ({
+  //     result: response.result,
+  //     next: nextPayementTokenUrl({ response, previousPayment, sellerId, startDate, endDate })
+  //   }))
+  // );
+  
+  // const transactionRqst$ = paymentRqst$.pipe(
+  //   mergeMap(payment => ObservableForkJoin({
+  //     payment: Promise.resolve(payment),
+  //     order: ObservableForkJoin({
+  //       aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'order_item_transactions' })),
+  //     }),
+  //     storage: ObservableForkJoin({
+  //       aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'storage_recall_transactions' })),
+  //     }),
+  //     spf: ObservableForkJoin({
+  //       aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'spf_transactions' })),
+  //     }),
+  //     tds: ObservableForkJoin({
+  //       aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tds_transactions' })),
+  //     }),
+  //     ads: ObservableForkJoin({
+  //       aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'ads_transactions' })),
+  //     }),
+  //     tcs: ObservableForkJoin({
+  //       aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tcs_transactions' })),
+  //     })
+  //   }))
+  // );
+
+  transactionRqst$.subscribe(console.log);
+  // const ur = 'https://seller.flipkart.com/napi/payments/getTransactionAggregatedAmount?transactionType=prepaid&adviceId=20094805&pageType=otherTransaction&type=order_item_transactions&sellerId=9ujbcnp6ky5ruzie';
+  // const ur = 'https://seller.flipkart.com/napi/payments/getHistory?offset=8&token=135&pageNo=135&transactionType=prepaid&adviceId=19945102&type=order_item_transactions&sellerId=9ujbcnp6ky5ruzie';
+  // curlRequest$(header, ur)
+  //   .subscribe(console.log)
+}
+
+fetchPreviousTransactions({
+  header: [
+    'Pragma: no-cache',
+    'DNT: 1',
+    // 'Accept-Encoding: gzip, deflate, br',
+    'Accept-Language: en-US,en;q=0.9,mr;q=0.8',
+    'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.157 Safari/537.36',
+    'Accept: application/json, text/javascript, */*; q=0.01',
+    'Cache-Control: no-cache',
+    'X-Requested-With: XMLHttpRequest',
+    'Cookie: s_ch_list=%5B%5B%27Internal%2520Originated%27%2C%271488954573683%27%5D%5D; _mkto_trk=id:021-QVV-957&token:_mch-flipkart.com-1495949869629-70928; _ga=GA1.2.2038854975.1495909297; T=TI148890318637053625093466435150917475437830390952355761756530507217; AMCVS_17EB401053DAF4840A490D4C%40AdobeOrg=1; s_cc=true; AMCV_17EB401053DAF4840A490D4C%40AdobeOrg=-227196251%7CMCIDTS%7C18043%7CMCMID%7C37080542162887526766253199795737714834%7CMCAAMLH-1558939319%7C12%7CMCAAMB-1559474573%7Cj8Odv6LonN4r3an7LhD3WZrU1bUpAkFkkiY1ncBR96t2PTI%7CMCOPTOUT-1558876973s%7CNONE%7CMCAID%7CNONE; AMCVS_55CFEDA0570C3FA17F000101%40AdobeOrg=1; __utmc=143439159; __utmz=143439159.1558869795.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); sellerId=9ujbcnp6ky5ruzie; _gid=GA1.2.1161172798.1558869828; S=d1t18P05bVT8/P1pWPyt+P0w/P6RrOOhZXNDmV3flEXDD3/SjTalTyX85T1/ghUp6FjxKZv/ifWwx7x7quWmQ8ZOGZw==; SN=2.VI2D21A0104CF94D9AB0835AE69883E6BF.SI2A846B995A7945F890ADBD569E1EB237.VSB1DCBB3CBCEC47ACB48C0E20B047CBDE.1558871023; connect.sid=s%3A5kgIVzcwOA7hnf_YvG3SrfbIP3mQHHB-.ZLfMJnJyG6%2FuJsd4FypwFrh2gHLTQuLqxFgrDml8Nyg; __utma=143439159.2038854975.1495909297.1558869795.1558871079.2; is_login=true; AMCV_55CFEDA0570C3FA17F000101%40AdobeOrg=-227196251%7CMCIDTS%7C18043%7CMCMID%7C11305740583582521872941987069957610473%7CMCOPTOUT-1558941981s%7CNONE%7CMCAID%7CNONE; _gat=1; s_ppvl=seller%253A%2520home%2520page%2C100%2C100%2C1000%2C847%2C998%2C1920%2C1080%2C0.8%2CL; s_ppv=seller%253A%2520payments%2520%257C%2520transactions%2C100%2C100%2C998%2C1043%2C998%2C1920%2C1080%2C0.8%2CP; s_nr=1558935916729-Repeat; s_ppn=no%20value; s_sq=flipkart-prd%3D%2526pid%253DHomePage%2526pidt%253D1%2526oid%253Dfunction%252528%252529%25257B%25257D%2526oidt%253D2%2526ot%253DDIV',
+    'Connection: keep-alive',
+    'Referer: https://seller.flipkart.com/sw.js',
+    'fk-csrf-token: C6ed4qGh-iRJXE-besPQs8yMeJIPWD_Zrs8w'
+  ],
+  startDate: '2019-05-01',
+  endDate: '2019-05-30',
+  sellerId: '9ujbcnp6ky5ruzie'
+})
