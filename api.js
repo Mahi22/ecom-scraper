@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const request = require('request');
 const zlib = require('zlib');
+const fs = require('fs');
 const FT = require('function-tree');
 // const Devtools = require('function-tree/devtools').default;
 
@@ -794,19 +795,23 @@ const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => 
       }),
       storage: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'storage_recall_transactions' })),
+        transactions: getTransactionsHistoryDetails$(payment, 'storage_recall_transactions', 'listing_id', 'storage' )
       }),
       spf: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'spf_transactions' })),
+        transactions: getTransactionsHistoryDetails$(payment, 'spf_transactions')
       }),
       tds: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tds_transactions' })),
+        transactions: getTransactionsHistoryDetails$(payment, 'tds_transactions')
       }),
       ads: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'ads_transactions' })),
-        // transactions: paymentHistoryRqst$(payment, 'ads_transactions')
+        transactions: paymentHistoryRqst$(payment, 'ads_transactions', 'txn_id', 'ads')
       }),
       tcs: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tcs_transactions' })),
+        transactions: getTransactionsHistoryDetails$(payment, 'tcs_transactions')
       })
     }))
   );
@@ -842,7 +847,15 @@ const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => 
   //   }))
   // );
 
-  transactionRqst$.subscribe(console.log);
+  transactionRqst$.subscribe(transactions => {
+    const jsonContent = JSON.stringify(transactions);
+    fs.writeFile('transactions.json', jsonContent, 'utf8', function (err) {
+      if (err) {
+        console.log('Error while writing JSON file');
+      }
+      console.log('DONE file saved');
+    })
+  });
   // const ur = 'https://seller.flipkart.com/napi/payments/getTransactionAggregatedAmount?transactionType=prepaid&adviceId=20094805&pageType=otherTransaction&type=order_item_transactions&sellerId=9ujbcnp6ky5ruzie';
   // const ur = 'https://seller.flipkart.com/napi/payments/getHistory?offset=8&token=135&pageNo=135&transactionType=prepaid&adviceId=19945102&type=order_item_transactions&sellerId=9ujbcnp6ky5ruzie';
   // curlRequest$(header, ur)
