@@ -2,9 +2,10 @@
 const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
-const parser = require('../lib/parser');
-const html = fs.readFileSync('./bath&showerIndex.html', { encoding: 'utf8' });
-
+const parser = require('./lib/parser');
+const html = fs.readFileSync('./bestSellersIndex.html', { encoding: 'utf8' });
+const $ = cheerio.load(html);
+var href = $(this).attr('href');
 function amazonBestSellersScraping(html) {
     const result = parser(html, {
     bestSellersProductInfo:{
@@ -27,12 +28,16 @@ function amazonBestSellersScraping(html) {
         ranking:{
             selector: 'span',
             texteq: 0
+        },
+        link : {
+            selector: '.a-link-normal',
+            attr : 'href'
         }
       }
     }
     });
-
     console.log(result);
   }
+
 
   amazonBestSellersScraping(html);
