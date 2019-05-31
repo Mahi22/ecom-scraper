@@ -714,6 +714,8 @@ const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => 
   const previousPaymentURL = 'https://seller.flipkart.com/napi/payments/fetchPreviousPayments?offset=8&filter=filter&type=MONTHLY_VIEW';
   const transactionAggregatedAmount = 'https://seller.flipkart.com/napi/payments/getTransactionAggregatedAmount';
   const transactionHistoryURL = 'https://seller.flipkart.com/napi/payments/getHistory?offset=8';
+  const detailsURL = 'https://seller.flipkart.com/napi/payments/details';
+  const historyURL = 'https://seller.flipkart.com/napi/payments/history';
 
   const paymentAggregatedAmountUrl = ({ payment, type, sellerId }) =>
   `${transactionAggregatedAmount}?transactionType=${payment.settlement_type.toLowerCase()}&adviceId=${payment.advice_id}&pageType=otherTransaction&type=${type}&sellerId=${sellerId}`
@@ -765,9 +767,22 @@ const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => 
   const paymentHistoryRqst$ = (payment, type) => getPaymentHistory$(header, `${transactionHistoryURL}&transactionType=${payment.settlement_type.toLowerCase()}&adviceId=${payment.advice_id}&type=${type}&sellerId=${sellerId}`, payment, type).pipe(
     expand(({ next }) => next ? getPaymentHistory$(header, next, payment, type).pipe(delay(1000)) : ObservableEmpty()),
     concatMap(({ transactions }) => transactions),
-    toArray(),
+    // toArray(),
     // tap(console.log),
     catchError(console.log),
+  );
+
+  const getTransactionsHistoryDetails$ = (payment, type, param, service_type) => paymentHistoryRqst$(payment, type).pipe(
+    mergeMap(transaction => transaction.is_clickable ? ObservableForkJoin({
+      basic: Promise.resolve(transaction),
+      details: curlRequest$(header, getUrl({ transaction, param, service_type, sellerId, url: detailsURL })),
+      history: curlRequest$(header, getUrl({ transaction, param, service_type, sellerId, url: historyURL }))
+    }) : ObservableForkJoin({
+      basic: Promise.resolve(transaction)
+    })),
+    // tap(console.log),
+    toArray(),
+    catchError(console.log)
   );
   
   const transactionRqst$ = paymentRqst$.pipe(
@@ -775,7 +790,7 @@ const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => 
       payment: Promise.resolve(payment),
       order: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'order_item_transactions' })),
-        transactions:paymentHistoryRqst$(payment, 'order_item_transactions')
+        transactions: getTransactionsHistoryDetails$(payment, 'order_item_transactions', 'order_item_id', 'orderItem' )
       }),
       storage: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'storage_recall_transactions' })),
@@ -788,6 +803,7 @@ const fetchPreviousTransactions = ({ header, startDate, endDate, sellerId }) => 
       }),
       ads: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'ads_transactions' })),
+        // transactions: paymentHistoryRqst$(payment, 'ads_transactions')
       }),
       tcs: ObservableForkJoin({
         aggregatedAmount: curlRequest$(header, paymentAggregatedAmountUrl({ payment, sellerId, type: 'tcs_transactions' })),
