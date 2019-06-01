@@ -3,6 +3,7 @@ const request = require('request');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const parser = require('./lib/parser');
+const directoryTree = require('./lib/nodeDirectory');
 const html = fs.readFileSync('./flipkartIndex.html', { encoding: 'utf8' });
 
 /* const html = `
@@ -181,7 +182,7 @@ var asins = [
   'B07PBQSMQW'
 ];
 
-mapAsins(asins);
+// mapAsins(asins);
 
 function flipkartScrapingWithParser(html){
   const result = parser(html, {
@@ -242,3 +243,5 @@ function flipkartScrapingWithParser(html){
 }
 
 //flipkartScrapingWithParser(html);
+const directory = directoryTree('./beauty');
+console.log(JSON.stringify(directory));
