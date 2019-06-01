@@ -1,4 +1,4 @@
-tree =  { "path": "./test/test_data",
+const tree =  { "path": "./test/test_data",
   "name": "test_data",
   "children" :
    [ { "path": "test/test_data/file_a.txt",
@@ -23,4 +23,6 @@ tree =  { "path": "./test/test_data",
        type: 'directory' } ],
        size : 3777,
        type : 'directory'
-   }
+}
+
+module.exports = tree;
