@@ -2,5 +2,30 @@
   "name": "ecom-scraper",
   "version": "1.0.0",
   "main": "index.js",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "test": "ava --verbose"
+  },
+  "devDependencies": {
+    "ava": "^1.4.1"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.3",
+    "request": "^2.88.0",
+    "sliced": "^1.0.1"
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mahi22/ecom-scraper.git"
+  },
+  "author": "Go Online Team",
+  "bugs": {
+    "url": "https://github.com/Mahi22/ecom-scraper/issues"
+  },
+  "homepage": "https://github.com/Mahi22/ecom-scraper#readme",
+  "description": "Building scrpaer for ecommerce marketplaces with configurations to fetch product details"
 }
