@@ -22,8 +22,8 @@ const amazonRobot$ = from(asins)
 const parse$ = amazonRobot$.pipe(map(html => {
     return parser(html, {
         dateFirst: {
-            selector: '.bucket .content ul li',
-            eq: 3
+            listItem: '.bucket .content ul li',
+            filter: x => x.includes('Date')
         }
     })}));
 
