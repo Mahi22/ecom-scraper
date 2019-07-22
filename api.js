@@ -1,4 +1,5 @@
 const FT = require('function-tree');
+const fs = require('fs');
 // const Devtools = require('function-tree/devtools').default;
 
 // const curl = new (require( 'curl-request' ))();
@@ -61,8 +62,12 @@ const tap = Operators.tap;
       url: `${getAllTransactionAggregatedAmount}?start_date=${startDate}&end_date=${endDate}&pageType=${pageType}&type=${type}&sellerId=${sellerId}`
     });
 
-    const allTransactionUrl = ({ props: { getHistory, pageType, type, startDate, endDate, sellerId }}) => ({
-      url: `${getHistory}?offset=8&start_date=${startDate}&end_date=${endDate}&pageType=${pageType}&type=${type}&sellerId=${sellerId}`
+    // const allTransactionUrl = ({ props: { getHistory, pageType, type, startDate, endDate, sellerId }}) => ({
+    //   url: `${getHistory}?offset=8&start_date=${startDate}&end_date=${endDate}&pageType=${pageType}&type=${type}&sellerId=${sellerId}`
+    // });
+
+    const allTransactionUrl = ({ props: { getHistory, pageType, type, startDate, endDate, sellerId, settlementStatus }}) => ({
+      url: `${getHistory}?offset=8&start_date=${startDate}&end_date=${endDate}&pageType=${pageType}&type=${type}&settlementStatus=${settlementStatus}&sellerId=${sellerId}`
     });
 
     const nextTokenUrl = (response, url) => {
@@ -76,10 +81,12 @@ const tap = Operators.tap;
 
     const allTransactions$ = ({ props: { header, url } }) => new Promise((resolve, reject) => {
       const get$ = (rqstUrl) => curlRequest$(header, rqstUrl).pipe(
-        map(res => ({
+        map(res => {
+          console.log('**********RES***********', res)
+          return {
           transactions: res.result.transactions,
           next: nextTokenUrl(res, url)
-        }))
+        }})
       )
 
       const allRqst$ = get$(url).pipe(
@@ -87,7 +94,7 @@ const tap = Operators.tap;
         concatMap(({ transactions }) => transactions),
         catchError(console.log),
         // tap(console.log),
-        toArray()
+        // toArray()
       );
 
       resolve({ allRqst$ });
@@ -248,24 +255,27 @@ const tap = Operators.tap;
     /** All Transactions*/
     ft.run([
       parallel([
-        orderTransactions,
-        storageRecallTransactions,
-        spfTransactions,
-        tdsTransactions,
-        adsTransactions,
-        tcsTransactions
+        orderTransactions
+        // storageRecallTransactions,
+        // spfTransactions,
+        // tdsTransactions,
+        // adsTransactions,
+        // tcsTransactions
       ]),
       ({ props: { orderTransaction$, storageTransaction$, spfTransaction$, tdsTransaction$, adsTransaction$, tcsTransaction$ }}) => {
         const allTransaction$ = ObservableForkJoin({
-          order: orderTransaction$,
-          storage: storageTransaction$,
-          spf: spfTransaction$,
-          tds: tdsTransaction$,
-          ads: adsTransaction$,
-          tcs: tcsTransaction$
+          order: orderTransaction$
+          // storage: storageTransaction$,
+          // spf: spfTransaction$,
+          // tds: tdsTransaction$,
+          // ads: adsTransaction$,
+          // tcs: tcsTransaction$
         });
 
-        allTransaction$.pipe(catchError(console.log)).subscribe(console.log);
+        allTransaction$.pipe(catchError(console.log)).subscribe(result => {
+          fs.writeFileSync('result.json', JSON.stringify(result), 'utf-8');
+          console.log('DONE');
+        });
       }
     ], {
       header: [
@@ -277,10 +287,9 @@ const tap = Operators.tap;
         'Accept: application/json, text/javascript, */*; q=0.01',
         'Cache-Control: no-cache',
         'X-Requested-With: XMLHttpRequest',
-        'Cookie: s_ch_list=%5B%5B%27Internal%2520Originated%27%2C%271488954573683%27%5D%5D; _mkto_trk=id:021-QVV-957&token:_mch-flipkart.com-1495949869629-70928; _ga=GA1.2.2038854975.1495909297; T=TI148890318637053625093466435150917475437830390952355761756530507217; __utmz=143439159.1558869795.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); connect.sid=s%3ApYDh3nzLi_kI0muIt1ZfRplO0GAcrL6U.I9MqGrHTlaavOekVxS%2FqMqyrQs5fgXPQ%2FCczqiHcagA; AMCVS_55CFEDA0570C3FA17F000101%40AdobeOrg=1; __utmc=143439159; __utma=143439159.2038854975.1495909297.1562153628.1562153628.7; sellerId=9ujbcnp6ky5ruzie; is_login=true; s_cc=true; _gid=GA1.2.1852333366.1562169537; SN=2.VI2D21A0104CF94D9AB0835AE69883E6BF.SI2A846B995A7945F890ADBD569E1EB237.VSB1DCBB3CBCEC47ACB48C0E20B047CBDE.1562230358; AMCVS_17EB401053DAF4840A490D4C%40AdobeOrg=1; AMCV_17EB401053DAF4840A490D4C%40AdobeOrg=-227196251%7CMCIDTS%7C18082%7CMCMID%7C37080542162887526766253199795737714834%7CMCAAMLH-1562835161%7C12%7CMCAAMB-1562835161%7Cj8Odv6LonN4r3an7LhD3WZrU1bUpAkFkkiY1ncBR96t2PTI%7CMCOPTOUT-1562237561s%7CNONE%7CMCAID%7CNONE; S=d1t18Rz8hJVMcMz8/Pz9bP1AtXmtCZDgKIKRPNlezOcKY5GnDdB/pVh3h2+O4XFZaMTOW+YO64vsqzjhWJkxopaquNg==; gpv_pn=HomePage; gpv_pn_t=FLIPKART%3AHomePage; AMCV_55CFEDA0570C3FA17F000101%40AdobeOrg=-227196251%7CMCIDTS%7C18081%7CMCMID%7C11305740583582521872941987069957610473%7CMCOPTOUT-1562237630s%7CNONE%7CMCAID%7CNONE; s_sq=%5B%5BB%5D%5D; s_ppvl=seller%253A%2520home%2520page%2C100%2C100%2C783%2C1600%2C783%2C1280%2C800%2C1.6%2CP; s_ppv=seller%253A%2520payments%2520%257C%2520transactions%2C100%2C100%2C783%2C945%2C783%2C1280%2C800%2C1.6%2CP; _gat=1; s_nr=1562230602736-Repeat; s_ppn=no%20value',
-        'Connection: keep-alive',
+        'Cookie: _ga=GA1.2.1768181471.1559647536; T=SD.afb2807a-33dd-413e-8d46-aed6cc0b3ced.1559647537635; _fbp=fb.1.1559808482448.577564355; __utmz=143439159.1561186980.15.2.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided); SESSf99cb25c7da4f47834c72b3d08d63a07=NsxT1U67KgFtsQHUD6LEpzS6Co2yWJLwe0K85JcBgkU; SESSd398554aa9ae933f1721372fd96620fd=mmNPPnnTHgA9b5hzwUD3dbKmWpl032gGtTbeogBZAMA; AMCVS_55CFEDA0570C3FA17F000101%40AdobeOrg=1; __utmc=143439159; s_cc=true; sellerId=e44shdrgmd6d0ueh; AMCVS_17EB401053DAF4840A490D4C%40AdobeOrg=1; AMCV_17EB401053DAF4840A490D4C%40AdobeOrg=-227196251%7CMCIDTS%7C18096%7CMCMID%7C20383864415458163401998425904631043573%7CMCAAMLH-1563520835%7C12%7CMCAAMB-1564039528%7CRKhpRz8krg2tLO6pguXWp5olkAcUniQYPHaMWWgdJ3xzPWQmdj0y%7CMCOPTOUT-1563441928s%7CNONE%7CMCAID%7CNONE; _gid=GA1.2.1359658662.1563437718; SN=2.VI887BFFB37D954E3FA0FF74C8B1B199A6.SI24286B0D2BA74E328D2737752CA86A00.VS7C3BE74F16A3456E9984499A22CD793C.1563452950; S=d1t15fjxjPy0/Pzw/PwsuPxs/P/5Mey3KZ76eRZTykCRVghRG65kIaXu79Zz2kG16J97ZxOXEZs9clSX+ulf4MrpP/w==; _gat=1; connect.sid=s%3Aw1PEdMQXcl-Usl5jO9rGGnWYQPf-_0EK.P7XNRnUkH013CShMMiXg4yq2Dy2etCgHGi%2F9cjPrxxs; __utma=143439159.1768181471.1559647536.1563257376.1563469343.43; __utmt=1; __utmb=143439159.4.9.1563469358631; is_login=true; s_ppn=seller%3A%20home%20page; s_ppvl=seller%253A%2520home%2520page%2C100%2C100%2C723%2C1440%2C723%2C1440%2C900%2C2%2CP; s_ppv=seller%253A%2520home%2520page%2C100%2C100%2C723%2C845%2C723%2C1440%2C900%2C2%2CP; s_nr=1563469370100-Repeat; s_sq=flipkartsellerprod%3D%2526c.%2526a.%2526activitymap.%2526page%253Dhttps%25253A%25252F%25252Fseller.flipkart.com%25252Findex.html%252523dashboard%25252Fpayments%25252Ftransactions%25253Ffilter%25253Dfilter%252526startDate%25253Dstart%252526endDate%25253Dend%2526link%253DTransactions%2526region%253DPayments%2526.activitymap%2526.a%2526.c; AMCV_55CFEDA0570C3FA17F000101%40AdobeOrg=-227196251%7CMCIDTS%7C18096%7CMCMID%7C74105635424132975823929931228517081500%7CMCOPTOUT-1563476570s%7CNONE%7CMCAID%7CNONE',
         'Referer: https://seller.flipkart.com/sw.js',
-        'fk-csrf-token: WRtG1XkW-XrHVysPKo0H4rAtxM62Glb5ozOg'
+        'fk-csrf-token: igWrvpp5-JL9FFddwpPEeBkzKLgMuNlRnZyk'
       ],
       previousPayment: 'https://seller.flipkart.com/napi/payments/fetchPreviousPayments?offset=8&filter=filter&type=MONTHLY_VIEW',
       getAllTransactionAggregatedAmount: 'https://seller.flipkart.com/napi/payments/getAllTransactionAggregatedAmount',
@@ -288,9 +297,10 @@ const tap = Operators.tap;
       details: 'https://seller.flipkart.com/napi/payments/details',
       history: 'https://seller.flipkart.com/napi/payments/history',
       getHistory: 'https://seller.flipkart.com/napi/payments/getHistory',
-      startDate: '2019-05-01',
-      endDate: '2019-05-30',
-      sellerId: '9ujbcnp6ky5ruzie'
+      startDate: '2019-07-01',
+      endDate: '2019-07-18',
+      sellerId: 'e44shdrgmd6d0ueh',
+      settlementStatus: 'settled'
     });
 
     // devtools.remove(ft);
